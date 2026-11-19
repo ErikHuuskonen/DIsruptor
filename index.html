@@ -454,7 +454,15 @@
     document.getElementById(loadingId).classList.add('visible');
     document.getElementById(errorId).textContent = '';
     try {
-      // Local version: the request goes to server.py, which holds the API key.
+      // Two modes, same file:
+      //  - on claude.ai: use claude.ai's built-in AI
+      //  - on your own computer: send to server.py, which uses your API key
+      if (window.claude && typeof window.claude.use === 'function') {
+        const sample = await claude.use("sample");
+        if (!sample) throw { message: 'AI is not available in this view. Open the page in claude.ai while signed in.' };
+        const res = await sample(prompt, { modelTier: "default" });
+        return res.text;
+      }
       const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -466,6 +474,8 @@
     } catch (err) {
       let msg = err && err.message ? err.message : String(err);
       if (msg.includes('Failed to fetch')) msg = 'Cannot reach the local server. Is "python3 server.py" running?';
+      if (err && err.code === 'not_granted') msg = 'Permission to use Claude was declined. Allow it from the page permissions and try again.';
+      if (err && err.code === 'rate_limited') msg = 'Too many requests. Wait a moment and try again.';
       document.getElementById(errorId).textContent = 'Error: ' + msg;
       return null;
     } finally {
