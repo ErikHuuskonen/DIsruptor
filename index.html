@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JTBD Disruptor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #5b8aff;
+    --accent2: #ff4f6d;
+    --accent3: #38e0b0;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+
+  .shell {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 56px;
+  }
+
+  .header-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  h1 span {
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 480px;
+  }
+
+  /* Stage indicator */
+  .stages {
+    display: flex;
+    gap: 0;
+    margin-bottom: 48px;
+    border: 1px solid var(--border);
+  }
+
+  .stage-dot {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .stage-dot:last-child { border-right: none; }
+
+  .stage-dot.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .stage-dot.done {
+    color: var(--accent3);
+  }
+
+  /* Input block */
+  .input-block {
+    margin-bottom: 32px;
+  }
+
+  .input-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 300;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.6;
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 13px 28px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #4070e8; }
+  .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .btn-danger {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  .btn-danger:hover { background: #e03555; }
+
+  /* Output blocks */
+  .output-section {
+    display: none;
+    margin-top: 40px;
+  }
+
+  .output-section.visible { display: block; }
+
+  .output-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .output-card-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .output-card h2 {
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .output-content {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #c0c0d0;
+    white-space: pre-wrap;
+    font-family: var(--mono);
+  }
+
+  /* Competitor cards */
+  .competitor-grid {
+    display: grid;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .competitor-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    padding: 20px 24px;
+  }
+
+  .competitor-card h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--accent3);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+
+  .competitor-card p {
+    font-size: 13px;
+    color: #c0c0d0;
+    line-height: 1.7;
+  }
+
+  .competitor-card .kill-label {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent2);
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .loading.visible { display: flex; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 36px 0;
+  }
+
+  /* Strategy chips */
+  .strategy-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .chip:hover, .chip.selected {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,79,109,0.06);
+  }
+
+  .idea {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+  }
+  .idea-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .idea h4 {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .idea-meta { margin-top: 6px; }
+  .idea-risk { margin-top: 12px; color: var(--accent2) !important; }
+  .scores {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  @media (max-width: 560px) { .scores { grid-template-columns: 1fr; } }
+  .score-head {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .score-num { color: var(--text); font-weight: 600; }
+  .score-track {
+    height: 6px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .score-fill { height: 100%; transition: width 0.6s ease; }
+  .fill-novelty { background: var(--accent); }
+  .fill-feasibility { background: var(--accent3); }
+  .score-reason {
+    font-size: 12px !important;
+    color: var(--muted) !important;
+    margin-top: 6px;
+  }
+
+  .error {
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 12px 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f5f8;
+      --surface: #ffffff;
+      --border: #dddde8;
+      --text: #111118;
+      --muted: #888899;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-label">JTBD DISRUPTOR</div>
+    <h1>What job does it do —<br>and how do you <span>destroy it?</span></h1>
+    <p class="subtitle">Enter a product, understand its real jobs, then design a competitor that makes it obsolete.</p>
+  </div>
+
+  <!-- Stage indicator -->
+  <div class="stages">
+    <div class="stage-dot active" id="stage1">01 product</div>
+    <div class="stage-dot" id="stage2">02 jtbd</div>
+    <div class="stage-dot" id="stage3">03 strategy</div>
+    <div class="stage-dot" id="stage4">04 disrupt</div>
+  </div>
+
+  <!-- STEP 1: Product input -->
+  <div id="step1">
+    <div class="input-block">
+      <label class="input-label">product name or description</label>
+      <input type="text" id="productInput" placeholder="e.g. Spotify, Excel, a physical gym membership..." />
+    </div>
+    <button class="btn btn-primary" onclick="analyzeJTBD()">Analyze jobs to be done →</button>
+    <div class="loading" id="loading1"><div class="spinner"></div>analyzing jobs...</div>
+    <div class="error" id="error1"></div>
+  </div>
+
+  <!-- STEP 2: JTBD output + strategy input -->
+  <div class="output-section" id="step2">
+    <div class="output-card">
+      <div class="output-card-label">JOBS TO BE DONE</div>
+      <div class="output-content" id="jtbdOutput"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="input-block">
+      <label class="input-label">choose a disruptive strategy — or write your own</label>
+      <div class="strategy-chips">
+        <button class="chip" onclick="selectChip(this, 'radical price reduction — make it 10x cheaper or free')">price destruction</button>
+        <button class="chip" onclick="selectChip(this, 'unbundling — strip it down to only the core job, remove everything else')">unbundling</button>
+        <button class="chip" onclick="selectChip(this, 'platform shift — move the job to a completely different medium or device')">platform shift</button>
+        <button class="chip" onclick="selectChip(this, 'community ownership — users own and govern the product collectively')">community ownership</button>
+        <button class="chip" onclick="selectChip(this, 'AI automation — replace human effort with AI, making the job instant and effortless')">AI automation</button>
+        <button class="chip" onclick="selectChip(this, 'vertical integration — control the entire supply chain to eliminate middlemen')">vertical integration</button>
+        <button class="chip" onclick="selectChip(this, 'nonconsumer focus — target people who currently have no solution at all')">nonconsumer focus</button>
+      </div>
+      <textarea id="strategyInput" placeholder="or describe your own disruptive strategy..."></textarea>
+    </div>
+    <button class="btn btn-danger" onclick="generateDisruptors()">Generate 5 business ideas →</button>
+    <div class="loading" id="loading2"><div class="spinner"></div>designing 5 business ideas...</div>
+    <div class="error" id="error2"></div>
+  </div>
+
+  <!-- STEP 3: Competitor output -->
+  <div class="output-section" id="step3">
+    <div class="output-card">
+      <div class="output-card-label">DISRUPTIVE BUSINESS IDEAS</div>
+      <div class="competitor-grid" id="competitorOutput"></div>
+    </div>
+
+    <hr class="divider">
+    <button class="btn btn-primary" onclick="resetAll()">Start over →</button>
+  </div>
+
+</div>
+
+<script>
+  let currentProduct = '';
+  let currentJTBD = '';
+
+  function selectChip(el, text) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('strategyInput').value = text;
+  }
+
+  function setStage(n) {
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById('stage' + i);
+      el.classList.remove('active', 'done');
+      if (i < n) el.classList.add('done');
+      if (i === n) el.classList.add('active');
+    }
+  }
+
+  async function callClaude(prompt, loadingId, errorId) {
+    document.getElementById(loadingId).classList.add('visible');
+    document.getElementById(errorId).textContent = '';
+    try {
+      // Local version: the request goes to server.py, which holds the API key.
+      const response = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || ('HTTP ' + response.status));
+      return data.text;
+    } catch (err) {
+      let msg = err && err.message ? err.message : String(err);
+      if (msg.includes('Failed to fetch')) msg = 'Cannot reach the local server. Is "python3 server.py" running?';
+      document.getElementById(errorId).textContent = 'Error: ' + msg;
+      return null;
+    } finally {
+      document.getElementById(loadingId).classList.remove('visible');
+    }
+  }
+
+  async function analyzeJTBD() {
+    const product = document.getElementById('productInput').value.trim();
+    if (!product) return;
+    currentProduct = product;
+
+    const prompt = `You are a Jobs To Be Done (JTBD) expert analyst.
+
+Analyze this product: "${product}"
+
+Output a structured JTBD analysis using ONLY this format — no extra prose:
+
+FUNCTIONAL JOBS:
+- [job 1]
+- [job 2]
+- [job 3]
+
+EMOTIONAL JOBS:
+- [job 1]
+- [job 2]
+
+SOCIAL JOBS:
+- [job 1]
+- [job 2]
+
+REAL COMPETITORS (things hired for the same job, even if different category):
+- [competitor 1]
+- [competitor 2]
+- [competitor 3]
+
+CORE JOB STATEMENT:
+When [situation], hire ${product} to [job], so [outcome].
+
+Be precise and insightful. Surface non-obvious competitors.`;
+
+    const result = await callClaude(prompt, 'loading1', 'error1');
+    if (!result) return;
+
+    currentJTBD = result;
+    document.getElementById('jtbdOutput').textContent = result;
+    document.getElementById('step2').classList.add('visible');
+    setStage(3);
+    document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function generateDisruptors() {
+    const strategy = document.getElementById('strategyInput').value.trim();
+    if (!strategy) {
+      document.getElementById('error2').textContent = 'Please enter or select a disruptive strategy.';
+      return;
+    }
+
+    const prompt = `You are a disruptive innovation strategist.
+
+PRODUCT BEING DISRUPTED: ${currentProduct}
+
+JOBS TO BE DONE ANALYSIS:
+${currentJTBD}
+
+DISRUPTIVE STRATEGY TO APPLY: ${strategy}
+
+Create exactly 5 HIGH-NOVELTY business ideas. Each idea must:
+1. Be built ENTIRELY on the disruptive strategy above — the strategy is the whole business logic of the company (its product, business model, cost structure and go-to-market), not a single feature added to it
+2. Fulfill the SAME core jobs to be done as ${currentProduct}
+3. Make ${currentProduct} obsolete
+
+The 5 ideas must be AS DIFFERENT FROM EACH OTHER AS POSSIBLE. Vary them deliberately along these axes so that no two share the same combination:
+- customer (consumers, businesses, nonconsumers, institutions, communities)
+- business model (subscription, marketplace, freemium, hardware, service, licensing, cooperative...)
+- scale (local niche to global platform)
+- which job (functional, emotional or social) it attacks first
+Avoid obvious variants of companies that already exist. Then evaluate each idea honestly and critically.
+
+Scoring (integers 1-10):
+- novelty: 1 = already exists widely, 10 = no comparable business exists
+- feasibility: 1 = needs breakthroughs or huge capital, 10 = a small team could launch it within a year
+Do not inflate scores. High novelty usually lowers feasibility; reflect that tension.
+
+Respond ONLY as valid JSON — no markdown, no backticks, no explanation. All text in English. Format:
+[
+  {
+    "title": "Name of the business",
+    "tagline": "One sharp sentence what it does",
+    "difference_axis": "Short phrase: what makes this idea unlike the other four (e.g. 'B2B marketplace, emotional job, local')",
+    "concept": "2-3 sentences: what the business does and why it is new",
+    "strategy_as_business": "2-3 sentences: how the disruptive strategy shapes the WHOLE business — product, model, costs and go-to-market",
+    "jobs_fulfilled": "One sentence: which jobs of ${currentProduct} it takes over",
+    "kill_mechanism": "One sentence: the specific thing that makes ${currentProduct} irrelevant",
+    "revenue_model": "One sentence: how it makes money",
+    "target_customer": "One sentence: who pays first",
+    "novelty": 0,
+    "novelty_reason": "One sentence justifying the novelty score",
+    "feasibility": 0,
+    "feasibility_reason": "One sentence justifying the feasibility score",
+    "biggest_risk": "One sentence: the main thing that could kill it"
+  }
+]`;
+
+    const result = await callClaude(prompt, 'loading2', 'error2');
+    if (!result) return;
+
+    let competitors;
+    try {
+      const clean = result.replace(/```json|```/g, '').trim();
+      const start = clean.indexOf('[');
+      const end = clean.lastIndexOf(']');
+      competitors = JSON.parse(clean.slice(start, end + 1));
+    } catch {
+      document.getElementById('error2').textContent = 'Could not parse response. Try again.';
+      return;
+    }
+
+    const grid = document.getElementById('competitorOutput');
+    grid.innerHTML = '';
+
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    const bar = (label, val, reason, cls) => {
+      const v = Math.max(0, Math.min(10, Number(val) || 0));
+      return `<div class="score">
+        <div class="score-head"><span>${label}</span><span class="score-num">${v}/10</span></div>
+        <div class="score-track"><div class="score-fill ${cls}" style="width:${v * 10}%"></div></div>
+        <p class="score-reason">${esc(reason)}</p>
+      </div>`;
+    };
+
+    competitors.slice(0, 5).forEach((b, i) => {
+      const card = document.createElement('div');
+      card.className = 'competitor-card';
+      card.innerHTML = `
+        <h3>${String.fromCharCode(65 + i)}. ${esc(b.title)}</h3>
+        <p><em>${esc(b.tagline)}</em></p>
+        <p class="idea-label" style="margin-top:8px">${esc(b.difference_axis)}</p>
+        <p style="margin-top:10px">${esc(b.concept)}</p>
+        <div class="idea">
+          <div class="idea-label">Strategy as the business</div>
+          <p>${esc(b.strategy_as_business)}</p>
+          <p class="idea-meta"><strong>Jobs it takes over:</strong> ${esc(b.jobs_fulfilled)}</p>
+          <p class="kill-label">↳ kills ${esc(currentProduct)} by: ${esc(b.kill_mechanism)}</p>
+        </div>
+        <div class="idea">
+          <p class="idea-meta"><strong>Revenue:</strong> ${esc(b.revenue_model)}</p>
+          <p class="idea-meta"><strong>First customer:</strong> ${esc(b.target_customer)}</p>
+          <div class="scores">
+            ${bar('Novelty', b.novelty, b.novelty_reason, 'fill-novelty')}
+            ${bar('Feasibility', b.feasibility, b.feasibility_reason, 'fill-feasibility')}
+          </div>
+          <p class="idea-risk"><strong>Biggest risk:</strong> ${esc(b.biggest_risk)}</p>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    document.getElementById('step3').classList.add('visible');
+    setStage(4);
+    document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function resetAll() {
+    document.getElementById('productInput').value = '';
+    document.getElementById('strategyInput').value = '';
+    document.getElementById('jtbdOutput').textContent = '';
+    document.getElementById('competitorOutput').innerHTML = '';
+    document.getElementById('step2').classList.remove('visible');
+    document.getElementById('step3').classList.remove('visible');
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.error').forEach(e => e.textContent = '');
+    currentProduct = '';
+    currentJTBD = '';
+    setStage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
